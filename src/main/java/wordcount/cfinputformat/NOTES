@@ -1,0 +1,42 @@
+the input files are all under 100k in size.  these were culled from the whole
+Gutenberg data set.
+
+with the TextFileInputFormat, there are 539 splits, one for each small file.
+
+the mapper is called once for each line of each input file!
+
+when you use a CombineFileInputFormat, you have to subclass it and provide
+a createRecordReader implementation.  that function should create a CombineFileRecordReader.
+that RR has to be constructed with a class object for a RR that you write.  here,
+WCCFRecordReader.
+
+that RR has to have a constructor whose signature is not documented!  the only
+way to know what the sig is is to either look at the CombineFileRecordReader source:
+
+https://github.com/facebookarchive/hadoop-20/blob/master/src/mapred/org/apache/hadoop/mapred/lib/CombineFileRecordReader.java
+
+or else look at the scats:
+
+java.lang.Exception: java.lang.RuntimeException: wordcount.cfinputformat.WCCFRecordReader does not have valid constructor
+        at org.apache.hadoop.mapred.LocalJobRunner$Job.runTasks(LocalJobRunner.java:462)
+        at org.apache.hadoop.mapred.LocalJobRunner$Job.run(LocalJobRunner.java:522)
+Caused by: java.lang.RuntimeException: wordcount.cfinputformat.WCCFRecordReader does not have valid constructor
+        at org.apache.hadoop.mapreduce.lib.input.CombineFileRecordReader.<init>(CombineFileRecordReader.java:123)
+        at wordcount.cfinputformat.WCCFInputFormat.createRecordReader(WCCFInputFormat.java:19)
+        at org.apache.hadoop.mapred.MapTask$NewTrackingRecordReader.<init>(MapTask.java:515)
+        at org.apache.hadoop.mapred.MapTask.runNewMapper(MapTask.java:758)
+        at org.apache.hadoop.mapred.MapTask.run(MapTask.java:341)
+        at org.apache.hadoop.mapred.LocalJobRunner$Job$MapTaskRunnable.run(LocalJobRunner.java:243)
+        at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+        at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+        at java.lang.Thread.run(Thread.java:745)
+Caused by: java.lang.NoSuchMethodException: wordcount.cfinputformat.WCCFRecordReader.<init>(org.apache.hadoop.mapreduce.lib.input.CombineFileSplit, org.apache.hadoop.mapreduce.TaskAttemptContext, java.lang.Integer)
+        at java.lang.Class.getConstructor0(Class.java:3082)
+        at java.lang.Class.getDeclaredConstructor(Class.java:2178)
+        at org.apache.hadoop.mapreduce.lib.input.CombineFileRecordReader.<init>(CombineFileRecordReader.java:120)
+        ... 10 more
+
+
+the idx argument to the RR is (i think) the index of the path in the split to be processed.  this isn't documented. 
